@@ -1,0 +1,15 @@
+{
+  "name": "mc2",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "compile": "shadow-cljs compile :web",
+    "release": "shadow-cljs release :web"
+  },
+  "devDependencies": {
+    "shadow-cljs": "^2.20.16"
+  },
+  "dependencies": {
+    "pixi.js": "^7.0.5"
+  }
+}

@@ -1,0 +1,23 @@
+;; shadow-cljs configuration
+{:deps   {:aliases [:dev :test]}
+ :builds {:web  {:target           :browser
+                 :output-dir       "public/js"
+                 :asset-path       "js"
+                 :modules          {:app {:entries [mc.app]}}
+                 :compiler-options {:output-feature-set :es2018}
+                 :js-options       {:resolve {"pixi" {:target :global
+                                                      :global "PIXI"}}}
+                 :dev              {:closure-defines {mc.app/DEV true}}
+                 :release          {:closure-defines {mc.app/DEV false}}
+                 :devtools         {:before-load mc.app/before-load
+                                    :after-load  mc.app/after-load
+                                    :http-root   "public"
+                                    :http-port   8900}}
+          :node {:target     :node-library
+                 :output-to  "target/node/index.js"
+                 :output-dir "target/node/js"
+                 :exports    {:hello user/init}}
+          :test {:target     :node-test
+                 :output-to  "target/test/index.js"
+                 :output-dir "target/test/js"
+                 :autorun    true}}}
