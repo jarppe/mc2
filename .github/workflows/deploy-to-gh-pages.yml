@@ -24,12 +24,10 @@ jobs:
           distribution: "temurin"
           java-version: "17"
 
-      - name: Cache Clojure deps
-        uses: actions/cache@v3
+      - name: Install clojure tools
+        uses: DeLaGuardo/setup-clojure@10.1
         with:
-          path: ~/.m2/repository
-          key: cljdeps-${{ hashFiles('shadow-cljs.edn') }}
-          restore-keys: cljdeps-
+          cli: 1.11.1
 
       - name: Cache JS deps
         uses: actions/cache@v3
@@ -38,9 +36,23 @@ jobs:
           key: npmdeps-${{ hashFiles('package.json', 'package-lock.json') }}
           restore-keys: npmdeps-
 
-      - name: Install deps
+      - name: Cache Clojure deps
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.gitlibs
+            ~/.deps.clj
+          key: cljdeps-${{ hashFiles('deps.edn', 'shadow-cljs.edn') }}
+          restore-keys: cljdeps-
+
+      - name: Install JS deps
         shell: bash
         run: npm i
+
+      - name: Install Clojure deps
+        shell: bash
+        run: clojure -P
 
       - name: Build
         shell: bash
