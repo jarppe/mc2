@@ -27,7 +27,7 @@ jobs:
       - name: Install clojure tools
         uses: DeLaGuardo/setup-clojure@9.5
         with:
-          cli: 1.11.1
+          cli: 1.10.3.1075
 
       - name: Cache JS deps
         uses: actions/cache@v3
