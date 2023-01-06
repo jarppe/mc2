@@ -77,7 +77,7 @@
                    :arrow
                    time
                    x y
-                   (* js/Math.PI -0.25) 0.01
+                   (* js/Math.PI -0.25) 0.02
                    0.01 0.01
                    1 0)
         parent))
