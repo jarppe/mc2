@@ -18,7 +18,7 @@
 
 
 #_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
-(defn run []
+(defn ^:export run []
   (println "Init at" (if DEV "DEV" "PRODUCTION") "mode...")
   (let [parent (j/call js/document :getElementById "container")
         canvas (j/call js/document :getElementById "game")]

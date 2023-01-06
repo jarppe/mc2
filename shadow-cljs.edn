@@ -4,7 +4,7 @@
                  :output-dir       "public/js"
                  :asset-path       "js"
                  :modules          {:app {:entries [mc.app]}}
-                 :compiler-options {:output-feature-set :es2018}
+                 :compiler-options {:output-feature-set :es8}
                  :js-options       {:resolve {"pixi" {:target :global
                                                       :global "PIXI"}}}
                  :dev              {:closure-defines {mc.app/DEV true}}
