@@ -12,9 +12,11 @@
         y (j/get e :offsetY)]
     (swap! game-state (fn [state]
                         (let [scale (-> state :view :scale)
+                              time  (js/Date.now)
                               x     (/ x scale)
                               y     (/ y scale)]
-                          (click state x y))))))
+                          (click state time x y {:shift? (j/get e :shiftKey)
+                                                 :ctrl?  (j/get e :ctrlKey)}))))))
 
 
 (defn on-resize [_]
@@ -25,17 +27,15 @@
       (j/call-in app [:stage :scale :set] new-scale new-scale)
       (swap! game-state update :view assoc :scale new-scale))))
 
+
 (defn on-tick [_]
-  (swap! game-state update-game))
+  (swap! game-state update-game (js/Date.now)))
 
 
 (defn reset-game []
   (swap! game-state (fn [state]
                       (j/call (-> state :stage) :removeChildren)
                       (sprites/init-sprites state)
-                      (sprites/sprite :circle 0 0)
-                      (sprites/sprite :circle 500 250)
-                      (sprites/sprite :circle 1000 500)
                       (dissoc state :game))))
 
 

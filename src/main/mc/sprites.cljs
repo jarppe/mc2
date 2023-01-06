@@ -9,39 +9,42 @@
     texture))
 
 
-(defn make-sprite [stage texture x y]
-  (let [sprite (doto (pixi/Sprite. texture)
-                 (j/call-in [:position :set] x y)
-                 (j/call-in [:anchor :set] 0.5))]
-    (j/call stage :addChild sprite)
-    sprite))
+(defn make-sprite [texture]
+  (doto (pixi/Sprite. texture)
+    (j/call-in [:anchor :set] 0.5)))
 
 
-(defn make-sprite-factory [stage renderer width height source]
+(defn make-sprite-factory [renderer width height source]
   (let [texture (make-texture renderer width height source)]
     (fn
       ([]
-       (j/call texture :destroy))
-      ([x y]
-       (make-sprite stage texture x y)))))
+       (make-sprite texture))
+      ([_]
+       (j/call texture :destroy)))))
 
 
 (defonce sprites (atom {}))
 
 
 (defn init-sprites [state]
-  (let [stage               (-> state :app (j/get :stage))
-        renderer            (-> state :app (j/get :renderer))
-        make-sprite-factory (partial make-sprite-factory stage renderer)]
+  (let [renderer            (-> state :app (j/get :renderer))
+        make-sprite-factory (partial make-sprite-factory renderer)]
     (swap! sprites (fn [sprites]
                      (doseq [factory (vals sprites)]
-                       (factory))
+                       (factory :destroy))
                      {:circle (make-sprite-factory 20 20 (doto (pixi/Graphics.)
                                                            (j/call :beginFill 0xf0f022)
                                                            (j/call :drawCircle 10 10 10)
-                                                           (j/call :endFill)))}))))
+                                                           (j/call :endFill)))
+                      :arrow  (make-sprite-factory 7 7 (doto (pixi/Graphics.)
+                                                         (j/call :beginFill 0x22f0e0)
+                                                         (j/call :moveTo 0 0)
+                                                         (j/call :lineTo 6 3)
+                                                         (j/call :lineTo 0 6)
+                                                         (j/call :closePath)
+                                                         (j/call :endFill)))}))))
 
 
-(defn sprite [id x y]
+(defn sprite [id]
   (let [factory (get @sprites id)]
-    (factory x y)))
+    (factory)))

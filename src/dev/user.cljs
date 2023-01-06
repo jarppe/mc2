@@ -22,5 +22,13 @@
     p)
 
   (pixi/Point. 0 0)
+
+  (deftype Foo [^:unsynchronized-mutable x])
+
+  (def foo (Foo. 1))
+  (.-x foo)
+  (set! (.-x foo) 2)
+
+
   ;
   )
