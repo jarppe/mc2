@@ -16,16 +16,23 @@
                         (click state time x y)))))
 
 
-(defn on-mousedown [e]
+(defn on-mousedown [^js e]
   (on-click (j/get e :offsetX)
             (j/get e :offsetY)))
 
 
-(defn on-touchstart [e]
-  (let [touch-item (-> (j/get e :touches)
-                       (j/call :item 0))]
-    (on-click (j/get touch-item :clientX)
-              (j/get touch-item :clientY))))
+(defn on-touchstart [^js e]
+  (let [touches (j/get e :changedTouches)]
+    (when (pos? (j/get touches :length))
+      (let [touch  (j/call touches :item 0)
+            target (j/get e :target)
+            bounds (j/call target :getBoundingClientRect)
+            top    (j/get bounds :top)
+            left   (j/get bounds :left)]
+        (on-click (-> (j/get touch :offsetX)
+                      (- left))
+                  (-> (j/get touch :offsetY)
+                      (- top)))))))
 
 
 (defn on-resize [_]
@@ -49,20 +56,22 @@
 
 
 (defn init-game [parent canvas dev-mode?]
-  (let [app       (pixi/Application. (j/obj :hello dev-mode?
-                                            :autoDensity true
-                                            :antialias true
-                                            :view canvas
-                                            :resizeTo parent))
-        listeners [(gevents/listen js/window "resize" on-resize)
-                   (gevents/listen canvas "mousedown" on-mousedown)
-                   (gevents/listen canvas "touchstart" on-touchstart)]]
-    (reset! game-state {:dev?      dev-mode?
-                        :view      {:parent parent
-                                    :canvas canvas}
-                        :listeners listeners
-                        :app       app
-                        :stage     (j/get app :stage)})
+  (let [app        (pixi/Application. (j/obj :hello dev-mode?
+                                             :autoDensity true
+                                             :antialias true
+                                             :view canvas
+                                             :resizeTo parent))
+        controller (js/AbortController.)
+        opts       (j/obj :signal (j/get controller :signal))]
+    (j/call js/window :addEventListener "resize" on-resize opts)
+    (j/call canvas :addEventListener "mousedown" on-mousedown opts)
+    (j/call canvas :addEventListener "touchstart" on-touchstart opts)
+    (reset! game-state {:dev?  dev-mode?
+                        :view  {:parent  parent
+                                :canvas  canvas
+                                :cleanup (fn [] (j/call controller :abort))}
+                        :app   app
+                        :stage (j/get app :stage)})
     (on-resize nil)
     (reset-game)
     (j/call-in app [:ticker :add] on-tick)))

@@ -10,8 +10,10 @@
 (comment
 
   (require '[mc.state :as state])
+  (require '[mc.game :as game])
   (require '["pixi" :as pixi])
 
+  game/e
   (-> @state/game-state :app (j/get :renderer))
 
   (js/console.dir (j/call pixi/RenderTexture :create (j/obj :width 10 :height 10)))
@@ -23,12 +25,16 @@
 
   (pixi/Point. 0 0)
 
-  (deftype Foo [^:unsynchronized-mutable x
-                ^:unsynchronized-mutable y])
+  (defprotocol IFoo (valid? [this]))
 
-  ##Inf
-    (def foo (->Foo 1 2))
-   (.-x foo)
+  (deftype Foo [^:unsynchronized-mutable x valid?]
+    IFoo
+    (valid? [this]
+      (valid?)))
+
+  (def foo (->Foo 1 (constantly :fofo)))
+  (.-x foo)
+  (valid? foo)
   (set! (.-x foo) 2)
   (assoc foo :y 32)
 

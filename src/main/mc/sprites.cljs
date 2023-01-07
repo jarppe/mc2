@@ -42,9 +42,9 @@
     (swap! sprites (fn [sprites]
                      (doseq [factory (vals sprites)]
                        (factory :destroy))
-                     {:defence-explosion (make-sprite-factory 20 20 (doto (pixi/Graphics.)
+                     {:defence-explosion (make-sprite-factory 60 60 (doto (pixi/Graphics.)
                                                                       (j/call :beginFill 0xffffff)
-                                                                      (j/call :drawCircle 10 10 10)
+                                                                      (j/call :drawCircle 30 30 30)
                                                                       (j/call :endFill)))
                       :attack-arrow      (make-sprite-factory 7 7 (make-arrow 0xEC685D))
                       :defence-arrow     (make-sprite-factory 7 7 (make-arrow 0x67AD5B))}))))
