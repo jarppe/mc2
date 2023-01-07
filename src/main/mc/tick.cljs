@@ -1,5 +1,6 @@
 (ns mc.tick
   (:require ["pixi" :as pixi]
+            [clojure.math :refer [sin cos atan2 PI]]
             [applied-science.js-interop :as j]
             [mc.state :refer [game-height game-width]]
             [mc.sprites :refer [sprite]]))
@@ -10,41 +11,39 @@
 (def max-x (+ game-width margin))
 (def min-y (- margin))
 (def max-y (+ game-height margin))
-
+(def game-center-x (/ game-width 2))
+(def half-PI (* PI 0.5))
 
 (defprotocol ISprite
-  (init [this] [this parent])
+  (init [this])
   (tick [this])
   (dispose [this]))
 
 
 (deftype Sprite [sprite
-                 kind
-                 created
-                 ^:unsynchronized-mutable x
-                 ^:unsynchronized-mutable y
-                 ^:unsynchronized-mutable d ^:unsynchronized-mutable d'
-                 ^:unsynchronized-mutable v ^:unsynchronized-mutable v'
-                 ^:unsynchronized-mutable s ^:unsynchronized-mutable s']
+                 ^:unsynchronized-mutable x ^:unsynchronized-mutable y
+                 ^:unsynchronized-mutable d d'
+                 ^:unsynchronized-mutable v v' max-v
+                 ^:unsynchronized-mutable s s' max-s
+                 data]
   ISprite
   (init [this]
-    (init this nil))
-  (init [this parent]
     (j/assoc! sprite :rotation d)
     (j/call-in sprite [:position :set] x y)
     (j/call-in sprite [:scale :set] s s)
-    (when parent
+    (when-let [parent (:parent data)]
       (j/call parent :addChild sprite))
     this)
   (tick [this]
-    (let [next-d (+ d d')
-          next-v (+ v v')
-          next-s (+ s s')
-          next-x (+ x (* next-v (js/Math.cos next-d)))
-          next-y (+ y (* next-v (js/Math.sin next-d)))]
+    (let [next-v (min (+ v v') max-v)
+          next-s (min (+ s s') max-s)
+          next-d (+ d d')
+          a      (- next-d half-PI)
+          next-x (+ x (* next-v (cos a)))
+          next-y (+ y (* next-v (sin a)))]
       (set! (.-v this) next-v)
       (when (not= d next-d)
-        (j/assoc! sprite :rotation next-d)
+        (j/assoc! sprite :rotation a)
         (set! (.-d this) next-d))
       (when (or (not= x next-x)
                 (not= y next-y))
@@ -61,45 +60,97 @@
     nil))
 
 
-(defn make-circle [parent time x y]
-  (init (->Sprite (sprite :circle)
-                  :circle
-                  time
-                  x y
-                  (* js/Math.PI 0.5) 0
-                  0.01 0.01
-                  0.6 0)
-        parent))
+(def Inf ##Inf) ; Indent breaks with ##Inf
 
 
-(defn make-arrow [parent time x y]
-  (init (->Sprite. (sprite :arrow)
-                   :arrow
-                   time
-                   x y
-                   (* js/Math.PI -0.25) 0.02
-                   0.01 0.01
-                   1 0)
-        parent))
+(def default-sprite-opts {:d      0
+                          :d'     0
+                          :v      0
+                          :v'     0
+                          :max-v  Inf
+                          :s      1
+                          :s'     0
+                          :max-s  Inf
+                          :limit? (constantly false)})
 
 
-(defn click [state time x y {:keys [shift?]}]
-  (update state :game update :objects conj (if shift?
-                                             (make-arrow (-> state :stage) time x y)
-                                             (make-circle (-> state :stage) time x y))))
+(defn newSprite [opts]
+  (let [opts (merge default-sprite-opts opts)]
+    (-> (->Sprite (:sprite opts) 
+                  (:x opts) (:y opts) 
+                  (:d opts) (:d' opts) 
+                  (:v opts) (:v' opts) (:max-v opts) 
+                  (:s opts) (:s' opts) (:max-s opts) 
+                opts)
+      (init))))
 
 
-(defn update-object [state time ^Sprite object]
-  (let [^Sprite object (tick object)]
-    (if (and (< min-x (.-x object) max-x)
-             (< min-y (.-y object) max-y))
-      object
-      (dispose object))))
+(defn make-defence-missile [parent target-x target-y]
+  (let [delta-x (- target-x game-center-x)
+        delta-y (- game-height target-y)
+        d       (atan2 delta-x delta-y)
+        limit?  (if (> (abs delta-x) (abs delta-y))
+                  (if (pos? delta-x)
+                    (fn [^Sprite sprite _state _time] (> (.-x sprite) target-x))
+                    (fn [^Sprite sprite _state _time] (< (.-x sprite) target-x)))
+                  (fn [^Sprite sprite _state _time] (< (.-y sprite) target-y)))]
+    (newSprite {:parent   parent
+                :sprite   (sprite :defence-arrow)
+                :kind     :defence-missile
+                :x        500
+                :y        500
+                :d        d
+                :v        0
+                :v'       0.02
+                :max-v    2.0
+                :target-x target-x
+                :target-y target-y
+                :limit?   limit?})))
+
+
+(defn make-defence-explosion [parent x y]
+  (newSprite {:parent parent
+              :sprite (sprite :defence-explosion)
+              :kind   :defence-explosion
+              :x      x
+              :y      y
+              :s      0.1
+              :s'     0.02
+              :limit? (fn [^Sprite sprite _state _time] (> (.-s sprite) 3))}))
+
+(defn click [state time x y]
+  (update state :game update :objects conj (make-defence-missile (-> state :stage) x y)))
+
+
+(defn limit-reached [^Sprite sprite]
+  (case (-> sprite .-data :kind)
+    :defence-missile (do (dispose sprite)
+                         (let [data (.-data sprite)]
+                           (make-defence-explosion (-> data :parent)
+                                                   (-> data :target-x)
+                                                   (-> data :target-y))))
+    :defence-explosion (dispose sprite)))
+
+
+(defn update-object [state time ^Sprite sprite]
+  (tick sprite)
+  (cond
+    (or (not (< min-x (.-x sprite) max-x))
+        (not (< min-y (.-y sprite) max-y)))
+    (dispose sprite)
+
+    (let [limit? (-> sprite .-data :limit?)]
+      (limit? sprite))
+    (limit-reached sprite)
+
+    :else
+    sprite))
 
 
 (defn update-objects [objects state time]
   (let [update-object (partial update-object state time)]
-    (doall (keep update-object objects))))
+    (-> (keep update-object objects)
+        (doall))))
 
 
 (defn update-game [state time]

@@ -23,12 +23,26 @@
 
   (pixi/Point. 0 0)
 
-  (deftype Foo [^:unsynchronized-mutable x])
+  (deftype Foo [^:unsynchronized-mutable x
+                ^:unsynchronized-mutable y])
 
-  (def foo (Foo. 1))
-  (.-x foo)
+  ##Inf
+    (def foo (->Foo 1 2))
+   (.-x foo)
   (set! (.-x foo) 2)
+  (assoc foo :y 32)
 
+  (require '[clojure.math :refer [atan2 to-degrees PI sin cos]])
+
+  (let [x 400
+        y 400]
+    (let [x (- x 500)
+          y (- 500 y)
+          d (-> (atan2 x y)
+                (to-degrees))]
+      [(sin d) (cos d)]))
+
+  (< 10 20 30)
 
   ;
   )

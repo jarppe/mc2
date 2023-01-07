@@ -7,16 +7,25 @@
             [mc.sprites :as sprites]))
 
 
-(defn on-click [e]
-  (let [x (j/get e :offsetX)
-        y (j/get e :offsetY)]
-    (swap! game-state (fn [state]
-                        (let [scale (-> state :view :scale)
-                              time  (js/Date.now)
-                              x     (/ x scale)
-                              y     (/ y scale)]
-                          (click state time x y {:shift? (j/get e :shiftKey)
-                                                 :ctrl?  (j/get e :ctrlKey)}))))))
+(defn on-click [x y]
+  (swap! game-state (fn [state]
+                      (let [scale (-> state :view :scale)
+                            time  (js/Date.now)
+                            x     (/ x scale)
+                            y     (/ y scale)]
+                        (click state time x y)))))
+
+
+(defn on-mousedown [e]
+  (on-click (j/get e :offsetX)
+            (j/get e :offsetY)))
+
+
+(defn on-touchstart [e]
+  (let [touch-item (-> (j/get e :touches)
+                       (j/call :item 0))]
+    (on-click (j/get touch-item :clientX)
+              (j/get touch-item :clientY))))
 
 
 (defn on-resize [_]
@@ -45,8 +54,9 @@
                                             :antialias true
                                             :view canvas
                                             :resizeTo parent))
-        listeners [(gevents/listen js/window goog.events.EventType.RESIZE on-resize)
-                   (gevents/listen canvas goog.events.EventType.MOUSEDOWN on-click)]]
+        listeners [(gevents/listen js/window "resize" on-resize)
+                   (gevents/listen canvas "mousedown" on-mousedown)
+                   (gevents/listen canvas "touchstart" on-touchstart)]]
     (reset! game-state {:dev?      dev-mode?
                         :view      {:parent parent
                                     :canvas canvas}

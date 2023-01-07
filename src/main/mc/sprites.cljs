@@ -26,23 +26,28 @@
 (defonce sprites (atom {}))
 
 
+(defn make-arrow [color]
+  (doto (pixi/Graphics.)
+    (j/call :beginFill color)
+    (j/call :moveTo 0 6)
+    (j/call :lineTo 3 0)
+    (j/call :lineTo 6 6)
+    (j/call :closePath)
+    (j/call :endFill)))
+
+
 (defn init-sprites [state]
   (let [renderer            (-> state :app (j/get :renderer))
         make-sprite-factory (partial make-sprite-factory renderer)]
     (swap! sprites (fn [sprites]
                      (doseq [factory (vals sprites)]
                        (factory :destroy))
-                     {:circle (make-sprite-factory 20 20 (doto (pixi/Graphics.)
-                                                           (j/call :beginFill 0xf0f022)
-                                                           (j/call :drawCircle 10 10 10)
-                                                           (j/call :endFill)))
-                      :arrow  (make-sprite-factory 7 7 (doto (pixi/Graphics.)
-                                                         (j/call :beginFill 0x22f0e0)
-                                                         (j/call :moveTo 0 0)
-                                                         (j/call :lineTo 6 3)
-                                                         (j/call :lineTo 0 6)
-                                                         (j/call :closePath)
-                                                         (j/call :endFill)))}))))
+                     {:defence-explosion (make-sprite-factory 20 20 (doto (pixi/Graphics.)
+                                                                      (j/call :beginFill 0xffffff)
+                                                                      (j/call :drawCircle 10 10 10)
+                                                                      (j/call :endFill)))
+                      :attack-arrow      (make-sprite-factory 7 7 (make-arrow 0xEC685D))
+                      :defence-arrow     (make-sprite-factory 7 7 (make-arrow 0x67AD5B))}))))
 
 
 (defn sprite [id]
