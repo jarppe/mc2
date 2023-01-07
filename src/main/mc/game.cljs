@@ -1,8 +1,8 @@
 (ns mc.game
   (:require ["pixi" :as pixi]
-            [goog.events :as gevents]
             [applied-science.js-interop :as j]
-            [mc.state :refer [game-state game-width]]
+            [mc.state :refer [game-state]]
+            [mc.util :refer [game-width]]
             [mc.tick :refer [click update-game]]
             [mc.sprites :as sprites]))
 

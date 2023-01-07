@@ -13,6 +13,7 @@
   (require '[mc.game :as game])
   (require '["pixi" :as pixi])
 
+  (update {:foo [1 2]} :foo conj 4 5 6)
   game/e
   (-> @state/game-state :app (j/get :renderer))
 
